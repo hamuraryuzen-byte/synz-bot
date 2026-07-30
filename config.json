@@ -1,0 +1,10 @@
+{
+  "prefix": "!",
+  "admins": [],
+  "targetGcName": "ANG ATING GC",
+  "defaultNickname": "Member",
+  "commands": {
+    "hi": "Hello! Kumusta ka?",
+    "bot": "Present! Ano ang maipaglilingkod ko?"
+  }
+}
