@@ -1,6 +1,6 @@
 if (event.type === "message" && event.body) {
 
-    // ❤️ Auto React
+    // ❤️ Auto React (Na-handle nang mas malinis)
     api.setMessageReaction("❤️", event.messageID, (err) => {
         if (err) console.error("Auto React Error:", err);
     }, true);
@@ -20,10 +20,8 @@ if (event.type === "message" && event.body) {
 
     if (messageText.startsWith(setNickCommand)) {
 
-        if (
-            config.admins.length > 0 &&
-            !config.admins.includes(senderID)
-        ) {
+        // Admin Guard Check
+        if (config.admins.length > 0 && !config.admins.includes(senderID)) {
             return api.sendMessage(
                 "Sensya na, admins lamang ang pwedeng gumamit ng command na ito.",
                 event.threadID,
@@ -31,28 +29,39 @@ if (event.type === "message" && event.body) {
             );
         }
 
-        const newNickname =
-            messageText.replace(setNickCommand, "").trim() ||
-            config.defaultNickname;
+        const newNickname = messageText.replace(setNickCommand, "").trim() || config.defaultNickname;
 
-        api.getThreadInfo(event.threadID, (err, info) => {
-            if (err) return console.error(err);
+        api.getThreadInfo(event.threadID, async (err, info) => {
+            if (err) {
+                console.error("Failed to fetch thread info:", err);
+                return api.sendMessage("Nagkaroon ng error sa pagkuha ng thread info.", event.threadID);
+            }
 
+            const members = info.participantIDs;
             api.sendMessage(
-                `Pinapalitan ang nickname ng ${info.participantIDs.length} miyembro...`,
+                `Pinapalitan ang nickname ng ${members.length} miyembro...`,
                 event.threadID
             );
 
-            info.participantIDs.forEach((userID) => {
-                api.changeNickname(
-                    newNickname,
-                    event.threadID,
-                    userID,
-                    (err) => {
-                        if (err) console.error(err);
-                    }
-                );
-            });
+            // Helper delay function para iwas rate limit / ban sa Facebook API
+            const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+            let updatedCount = 0;
+
+            for (const userID of members) {
+                api.changeNickname(newNickname, event.threadID, userID, (err) => {
+                    if (err) console.error(`Error changing nick for ${userID}:`, err);
+                });
+
+                updatedCount++;
+                // Mag-antay ng 800ms bawat member para ligtas sa spam filter
+                await delay(800); 
+            }
+
+            api.sendMessage(
+                `✅ Tapos na! Napanatili at napalitan ang nickname ng ${updatedCount} na miyembro.`,
+                event.threadID
+            );
         });
     }
-      }
+}
